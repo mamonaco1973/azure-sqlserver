@@ -3,7 +3,7 @@
 # -------------------------------------------------------------------------------------------------
 variable "project_resource_group" {
   description = "Name of the Azure Resource Group" # This is the container for all resources
-  default     = "sqlserver-rg"                      # Default RG name unless overridden
+  default     = "sqlserver-rg"                     # Default RG name unless overridden
   type        = string                             # Must be a string (no lists, no objects)
 }
 
@@ -12,7 +12,7 @@ variable "project_resource_group" {
 # -------------------------------------------------------------------------------------------------
 variable "project_vnet" {
   description = "Name of the Azure Virtual Network" # The logical network space for your project
-  default     = "sqlserver-vnet"                     # Default name — can be overridden via CLI/TFVars
+  default     = "sqlserver-vnet"                    # Default name — can be overridden via CLI/TFVars
   type        = string
 }
 

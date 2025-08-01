@@ -21,7 +21,7 @@ resource "azurerm_subnet" "sqlserver-subnet" {
   delegation {
     name = "delegation"
     service_delegation {
-      name    = "Microsoft.DBforSQLServer/flexibleServers"               # Required service
+      name    = "Microsoft.Sql/servers"                                   # Required service
       actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"] # Allow VNet actions
     }
   }
@@ -31,7 +31,7 @@ resource "azurerm_subnet" "sqlserver-subnet" {
 # CREATE NETWORK SECURITY GROUP (NSG) FOR POSTGRESQL SUBNET
 # =================================================================================
 resource "azurerm_network_security_group" "sqlserver-nsg" {
-  name                = "sqlserver-nsg"                         # NSG name
+  name                = "sqlserver-nsg"                        # NSG name
   location            = var.project_location                   # Region (from variable)
   resource_group_name = azurerm_resource_group.project_rg.name # Target RG
 
