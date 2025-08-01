@@ -16,15 +16,6 @@ resource "azurerm_subnet" "sqlserver-subnet" {
   resource_group_name  = azurerm_resource_group.project_rg.name    # Must match VNet's RG
   virtual_network_name = azurerm_virtual_network.project-vnet.name # Link to parent VNet
   address_prefixes     = ["10.0.0.0/25"]                           # 128 IPs (lower half of /23)
-
-  # Delegation required for PostgreSQL Flexible Server
-  delegation {
-    name = "delegation"
-    service_delegation {
-      name    = "Microsoft.Sql/servers"                                   # Required service
-      actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"] # Allow VNet actions
-    }
-  }
 }
 
 # =================================================================================
