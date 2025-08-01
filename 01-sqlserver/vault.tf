@@ -33,19 +33,19 @@ resource "azurerm_role_assignment" "kv_role_assignment" {
 # =================================================================================
 # CREATE A STRONG RANDOM PASSWORD FOR DATABASE LOGIN
 # =================================================================================
-resource "random_password" "postgres_password" {
+resource "random_password" "sqlserver_password" {
   length  = 24    # 24 characters for strong entropy
   special = false # Avoid special chars (e.g., for scripts or connection strings)
 }
 
 # =================================================================================
-# SAVE POSTGRES CREDENTIALS AS A JSON-ENCODED SECRET IN KEY VAULT
+# SAVE SQL SERVER CREDENTIALS AS A JSON-ENCODED SECRET IN KEY VAULT
 # =================================================================================
-resource "azurerm_key_vault_secret" "postgres_secret" {
-  name = "postgres-credentials" # Logical name of the secret
+resource "azurerm_key_vault_secret" "sqlserver_secret" {
+  name = "sqlserver-credentials" # Logical name of the secret
   value = jsonencode({          # JSON-encoded username + password
-    username = "postgres"
-    password = random_password.postgres_password.result
+    username = "sqlserver"
+    password = random_password.sqlserver_password.result
   })
   key_vault_id = azurerm_key_vault.credentials_key_vault.id   # Target Key Vault ID
   depends_on   = [azurerm_role_assignment.kv_role_assignment] # Ensure access is granted before creating secret
