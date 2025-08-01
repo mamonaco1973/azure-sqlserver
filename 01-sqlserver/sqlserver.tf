@@ -27,13 +27,13 @@ resource "azurerm_private_dns_zone_virtual_network_link" "sql_dns_link" {
 # CREATE AZURE SQL SERVER
 # =================================================================================
 resource "azurerm_mssql_server" "sql_server_instance" {
-  name                         = "sqlserver-${random_string.suffix.result}"
-  resource_group_name          = azurerm_resource_group.project_rg.name
-  location                     = azurerm_resource_group.project_rg.location
-  version                      = "12.0"
-  administrator_login          = "sqladmin"
-  administrator_login_password = random_password.sqlserver_password.result
-  minimum_tls_version          = "1.2"
+  name                          = "sqlserver-${random_string.suffix.result}"
+  resource_group_name           = azurerm_resource_group.project_rg.name
+  location                      = azurerm_resource_group.project_rg.location
+  version                       = "12.0"
+  administrator_login           = "sqladmin"
+  administrator_login_password  = random_password.sqlserver_password.result
+  minimum_tls_version           = "1.2"
   public_network_access_enabled = false
 }
 
