@@ -1,3 +1,10 @@
+resource "random_string" "suffix" {
+  length  = 6
+  upper   = false
+  numeric = true
+  special = false
+}
+
 # =================================================================================
 # CREATE PRIVATE DNS ZONE FOR AZURE SQL SERVER
 # =================================================================================
@@ -25,7 +32,7 @@ resource "azurerm_mssql_server" "sql_server_instance" {
   location                     = azurerm_resource_group.project_rg.location
   version                      = "12.0"
   administrator_login          = "sqladmin"
-  administrator_login_password = random_password.sql_password.result
+  administrator_login_password = random_password.sqlserver_password.result
   minimum_tls_version          = "1.2"
   public_network_access_enabled = false
 }
