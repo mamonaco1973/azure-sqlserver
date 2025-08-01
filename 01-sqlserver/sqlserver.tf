@@ -1,41 +1,59 @@
-# # =================================================================================
-# # CREATE PRIVATE DNS ZONE FOR POSTGRES FLEXIBLE SERVER
-# # =================================================================================
-# resource "azurerm_private_dns_zone" "postgres_private_dns" {
-#   name                = "privatelink.postgres.database.azure.com"
-#   resource_group_name = azurerm_resource_group.project_rg.name
-# }
+# =================================================================================
+# CREATE PRIVATE DNS ZONE FOR AZURE SQL SERVER
+# =================================================================================
+resource "azurerm_private_dns_zone" "sql_private_dns" {
+  name                = "privatelink.database.windows.net"
+  resource_group_name = azurerm_resource_group.project_rg.name
+}
 
-# # =================================================================================q
-# # LINK PRIVATE DNS ZONE TO VNET
-# # =================================================================================
-# resource "azurerm_private_dns_zone_virtual_network_link" "postgres_dns_link" {
-#   name                  = "postgres-dns-link"
-#   resource_group_name   = azurerm_resource_group.project_rg.name
-#   private_dns_zone_name = azurerm_private_dns_zone.postgres_private_dns.name
-#   virtual_network_id    = azurerm_virtual_network.project-vnet.id
-# }
+# =================================================================================
+# LINK PRIVATE DNS ZONE TO VNET
+# =================================================================================
+resource "azurerm_private_dns_zone_virtual_network_link" "sql_dns_link" {
+  name                  = "sql-dns-link"
+  resource_group_name   = azurerm_resource_group.project_rg.name
+  private_dns_zone_name = azurerm_private_dns_zone.sql_private_dns.name
+  virtual_network_id    = azurerm_virtual_network.project-vnet.id
+}
 
-# # =================================================================================
-# # CREATE PRIVATE POSTGRESQL FLEXIBLE SERVER
-# # =================================================================================
-# resource "azurerm_postgresql_flexible_server" "postgres_instance" {
-#   name                          = "postgres-instance-${random_string.suffix.result}"
-#   resource_group_name           = azurerm_resource_group.project_rg.name
-#   location                      = azurerm_resource_group.project_rg.location
-#   version                       = "15"
-#   administrator_login           = "postgres"
-#   administrator_password        = random_password.postgres_password.result
-#   storage_mb                    = 32768
-#   sku_name                      = "B_Standard_B1ms"
-#   backup_retention_days         = 7
-#   geo_redundant_backup_enabled  = false
-#   zone                          = "1"
-#   public_network_access_enabled = false
+# =================================================================================
+# CREATE AZURE SQL SERVER
+# =================================================================================
+resource "azurerm_mssql_server" "sql_server_instance" {
+  name                         = "sqlserver-${random_string.suffix.result}"
+  resource_group_name          = azurerm_resource_group.project_rg.name
+  location                     = azurerm_resource_group.project_rg.location
+  version                      = "12.0"
+  administrator_login          = "sqladmin"
+  administrator_login_password = random_password.sql_password.result
+  minimum_tls_version          = "1.2"
+  public_network_access_enabled = false
+}
 
-#   # Ensure PostgreSQL is deployed into a delegated subnet
-#   delegated_subnet_id = azurerm_subnet.postgres-subnet.id
+# =================================================================================
+# CREATE PRIVATE ENDPOINT FOR SQL SERVER
+# =================================================================================
+resource "azurerm_private_endpoint" "sql_private_endpoint" {
+  name                = "sqlserver-pe"
+  location            = azurerm_resource_group.project_rg.location
+  resource_group_name = azurerm_resource_group.project_rg.name
+  subnet_id           = azurerm_subnet.sqlserver-subnet.id
 
-#   # Link to the private DNS zone
-#   private_dns_zone_id = azurerm_private_dns_zone.postgres_private_dns.id
-# }
+  private_service_connection {
+    name                           = "sqlserver-privateservice"
+    private_connection_resource_id = azurerm_mssql_server.sql_server_instance.id
+    subresource_names              = ["sqlServer"]
+    is_manual_connection           = false
+  }
+}
+
+# =================================================================================
+# LINK PRIVATE ENDPOINT TO PRIVATE DNS ZONE
+# =================================================================================
+resource "azurerm_private_dns_a_record" "sql_dns_record" {
+  name                = azurerm_mssql_server.sql_server_instance.name
+  zone_name           = azurerm_private_dns_zone.sql_private_dns.name
+  resource_group_name = azurerm_resource_group.project_rg.name
+  ttl                 = 300
+  records             = [azurerm_private_endpoint.sql_private_endpoint.private_service_connection[0].private_ip_address]
+}
