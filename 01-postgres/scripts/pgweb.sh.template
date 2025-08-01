@@ -1,0 +1,97 @@
+#!/bin/bash
+# ----------------------------------------------------------------------------------
+# This script loads the Pagila sample database into an Azure PostgreSQL instance,
+# then installs and configures the pgweb UI for interacting with the database.
+# Intended for use on a newly provisioned Azure VM.
+# ----------------------------------------------------------------------------------
+
+# -------------------------------
+# UPDATE AND INSTALL DEPENDENCIES
+# -------------------------------
+apt update -y                           # Update APT package index (suppress confirmation)
+apt install -y postgresql-client unzip  # Install PostgreSQL CLI and unzip tool (non-interactive)
+
+# -----------------------------------------------
+# CLONE GITHUB REPO CONTAINING PAGILA SQL FILES
+# -----------------------------------------------
+cd /tmp                               # Work in a temporary directory
+git clone https://github.com/mamonaco1973/azure-postgres.git  # Clone repository with SQL data
+cd azure-postgres/01-postgres/data    # Navigate to folder containing pagila SQL scripts
+
+# -------------------------
+# SET ENV VARS FOR DATABASE
+# -------------------------
+export PGPASSWORD="${PGPASSWORD}"    
+export PGENDPOINT="${PGENDPOINT}"  
+
+# -----------------------
+# LOAD PAGILA INTO PGSQL
+# -----------------------
+# 1. Create 'pagila' database schema in default 'postgres' DB
+PGPASSWORD=$PGPASSWORD psql -h $PGENDPOINT -U postgres -d postgres -f pagila-db.sql > /tmp/db_load.log
+
+# 2. Load schema into the new 'pagila' database
+PGPASSWORD=$PGPASSWORD psql -h $PGENDPOINT -U postgres -d pagila -f pagila-schema.sql >> /tmp/db_load.log
+
+# 3. Load data into the 'pagila' database
+PGPASSWORD=$PGPASSWORD psql -h $PGENDPOINT -U postgres -d pagila -f pagila-data.sql >> /tmp/db_load.log
+
+# -----------------------------
+# INSTALL AND CONFIGURE PGWEB
+# -----------------------------
+# Download pgweb release (PostgreSQL web UI tool)
+wget https://github.com/sosedoff/pgweb/releases/download/v0.11.12/pgweb_linux_amd64.zip
+
+# Extract the binary
+unzip pgweb_linux_amd64.zip
+
+# Make binary executable
+chmod +x pgweb_linux_amd64
+
+# Move pgweb to a system-wide path for execution
+sudo mv pgweb_linux_amd64 /usr/local/bin/pgweb
+
+# ----------------------
+# DEFINE PGWEB VARIABLES
+# ----------------------
+PGWEB_BIN="/usr/local/bin/pgweb"  # Location of the pgweb binary
+PGWEB_USER="root"                 # User that will run the pgweb process
+PGWEB_HOME="/root"                # Home directory for pgweb process
+PGWEB_PORT="80"                   # HTTP port to bind pgweb to (adjust if needed)
+
+# --------------------------------------
+# VERIFY PGWEB WAS INSTALLED CORRECTLY
+# --------------------------------------
+if [ ! -f "$PGWEB_BIN" ]; then
+  echo "Error: $PGWEB_BIN not found"  # Abort if pgweb binary not in expected location
+  exit 1
+fi
+
+# ----------------------------------------
+# CREATE A SYSTEMD SERVICE FOR PGWEB
+# ----------------------------------------
+cat <<EOF > /etc/systemd/system/pgweb.service
+[Unit]
+Description=Pgweb - Web UI for PostgreSQL
+After=network.target                  
+
+[Service]
+Type=simple
+ExecStart=$PGWEB_BIN --listen=$PGWEB_PORT --bind 0.0.0.0  # Listen on all interfaces
+Restart=on-failure
+User=$PGWEB_USER
+WorkingDirectory=$PGWEB_HOME
+
+[Install]
+WantedBy=multi-user.target           
+EOF
+
+# -----------------------------
+# ENABLE AND START PGWEB SERVICE
+# -----------------------------
+
+systemctl daemon-reexec             # Re-exec systemd in case the binary changed
+systemctl daemon-reload             # Reload systemd unit files
+systemctl enable pgweb              # Enable pgweb to start at boot
+systemctl start pgweb               # Start pgweb immediately
+systemctl status pgweb | cat        # Check the status of the pgweb service

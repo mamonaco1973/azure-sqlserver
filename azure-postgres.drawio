@@ -1,0 +1,73 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36" version="27.1.6">
+  <diagram id="7gcUSTIZ7YSJ5vT40chW" name="Page-1">
+    <mxGraphModel grid="1" page="1" gridSize="10" guides="1" tooltips="1" connect="0" arrows="0" fold="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="M7SeO1mPTdzSNuAZCHN5-28" value="" style="fillColor=none;rounded=0;labelBackgroundColor=none;fontColor=none;noLabel=1;shadow=0;glass=0;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="160" y="-731" width="850" height="511" as="geometry" />
+        </mxCell>
+        <mxCell id="M7SeO1mPTdzSNuAZCHN5-29" value="" style="whiteSpace=wrap;html=1;rounded=0;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="202.82" y="-677.5" width="767.18" height="257.5" as="geometry" />
+        </mxCell>
+        <mxCell id="M7SeO1mPTdzSNuAZCHN5-30" value="Azure Cloud - US Central Region" style="image;aspect=fixed;html=1;points=[];align=left;fontSize=17;image=img/lib/azure2/other/Azure_A.svg;labelBackgroundColor=none;labelPosition=right;verticalLabelPosition=middle;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="160" y="-770" width="31.82" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="M7SeO1mPTdzSNuAZCHN5-35" value="Virtual Network - postgres-vnet" style="image;aspect=fixed;html=1;points=[];align=left;fontSize=17;image=img/lib/azure2/networking/Virtual_Networks.svg;labelBackgroundColor=none;labelPosition=right;verticalLabelPosition=middle;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="202.82" y="-713" width="40" height="23.88" as="geometry" />
+        </mxCell>
+        <mxCell id="M7SeO1mPTdzSNuAZCHN5-36" value="" style="whiteSpace=wrap;html=1;fillColor=none;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="440" y="-634.12" width="229" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="M7SeO1mPTdzSNuAZCHN5-42" value="vm-subnet" style="image;aspect=fixed;html=1;points=[];align=left;fontSize=12;image=img/lib/azure2/networking/Subnet.svg;labelBackgroundColor=none;labelPosition=right;verticalLabelPosition=middle;verticalAlign=middle;spacing=9;" vertex="1" parent="1">
+          <mxGeometry x="440" y="-660" width="33.4" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ckLyT5EqBb1HqFQdgZS1-2" value="postgres subnet" style="image;aspect=fixed;html=1;points=[];align=left;fontSize=12;image=img/lib/azure2/networking/Subnet.svg;labelBackgroundColor=none;labelPosition=right;verticalLabelPosition=middle;verticalAlign=middle;spacing=9;" vertex="1" parent="1">
+          <mxGeometry x="710.5" y="-660" width="33.4" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ckLyT5EqBb1HqFQdgZS1-8" value="pgweb-vm" style="image;sketch=0;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/mscae/VM_Linux.svg;labelBackgroundColor=none;" vertex="1" parent="1">
+          <mxGeometry x="515.5" y="-584.63" width="78" height="71.76" as="geometry" />
+        </mxCell>
+        <mxCell id="ckLyT5EqBb1HqFQdgZS1-12" value="Key Vault&lt;div&gt;&quot;vm-credentials&quot; Secret&lt;/div&gt;" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/security/Key_Vaults.svg;" vertex="1" parent="1">
+          <mxGeometry x="280" y="-360" width="68" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="AcA3orxnP_secUjvsncz-1" value="Key Vault&lt;div&gt;&quot;postgres-credentials&quot; Secret&lt;/div&gt;" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/security/Key_Vaults.svg;" vertex="1" parent="1">
+          <mxGeometry x="525.5" y="-360" width="68" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="AcA3orxnP_secUjvsncz-2" value="" style="whiteSpace=wrap;html=1;fillColor=none;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="710.5" y="-634.12" width="229" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="AcA3orxnP_secUjvsncz-4" value="postgres-instance" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/databases/Azure_Database_PostgreSQL_Server.svg;" vertex="1" parent="1">
+          <mxGeometry x="801" y="-581" width="48" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="AcA3orxnP_secUjvsncz-5" value="pgweb-vm-public-ip" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/networking/Public_IP_Addresses.svg;" vertex="1" parent="1">
+          <mxGeometry x="280" y="-580.12" width="65" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="AcA3orxnP_secUjvsncz-6" value="Web Browser" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/general/Browser.svg;" vertex="1" parent="1">
+          <mxGeometry x="60" y="-581" width="70" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="AcA3orxnP_secUjvsncz-7" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;" edge="1" parent="1" source="AcA3orxnP_secUjvsncz-6" target="AcA3orxnP_secUjvsncz-5">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="120" y="-553" as="sourcePoint" />
+            <mxPoint x="270" y="-550" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="AcA3orxnP_secUjvsncz-8" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;exitX=0.992;exitY=0.55;exitDx=0;exitDy=0;exitPerimeter=0;entryX=-0.002;entryY=0.474;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="AcA3orxnP_secUjvsncz-5" target="ckLyT5EqBb1HqFQdgZS1-8">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="560" y="-420" as="sourcePoint" />
+            <mxPoint x="610" y="-470" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="AcA3orxnP_secUjvsncz-9" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;" edge="1" parent="1" source="ckLyT5EqBb1HqFQdgZS1-8" target="AcA3orxnP_secUjvsncz-4">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="560" y="-420" as="sourcePoint" />
+            <mxPoint x="610" y="-470" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="AcA3orxnP_secUjvsncz-10" value="privatelink.postgres.database.azure.com" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/networking/DNS_Zones.svg;" vertex="1" parent="1">
+          <mxGeometry x="793" y="-356" width="64" height="64" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
