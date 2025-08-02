@@ -44,7 +44,7 @@ resource "random_password" "sqlserver_password" {
 resource "azurerm_key_vault_secret" "sqlserver_secret" {
   name = "sqlserver-credentials" # Logical name of the secret
   value = jsonencode({           # JSON-encoded username + password
-    username = "sqlserver"
+    username = "sqladmin"
     password = random_password.sqlserver_password.result
   })
   key_vault_id = azurerm_key_vault.credentials_key_vault.id   # Target Key Vault ID
