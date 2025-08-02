@@ -68,14 +68,23 @@ sqlcmd -S "$DBENDPOINT" -U "$DBUSER" -P "$DBPASSWORD" -d pagila -i "4.pagila-sch
 # INSTALL ADMINER (WEB CLIENT)
 # ===========================
 
-# Install Apache2 web server, PHP interpreter, and Sybase PHP module (for SQL Server compatibility).
-sudo apt install apache2 php libapache2-mod-php php-sybase -y
+# Install Apache2 web server, PHP interpreter
 
-# Create Adminer’s directory under the Apache web root if it does not already exist.
-sudo mkdir -p /var/www/html/adminer
+sudo apt install apache2 php libapache2-mod-php -y
+sudo apt install unixodbc-dev gnupg2 -y
+sudo ACCEPT_EULA=Y apt install -y msodbcsql18 mssql-tools18
+sudo apt install -y php-dev php-pear php-xml
+sudo pecl install sqlsrv pdo_sqlsrv
 
-# Download the latest version of Adminer (single PHP file) and store it as index.php in Adminer’s directory.
-sudo wget https://www.adminer.org/latest.php -O /var/www/html/adminer/index.php
+# Enable the new drivers
+sudo bash -c 'echo "extension=sqlsrv.so" > /etc/php/$(php -r "echo PHP_MAJOR_VERSION.\".\".PHP_MINOR_VERSION;")/apache2/conf.d/20-sqlsrv.ini'
+sudo bash -c 'echo "extension=pdo_sqlsrv.so" > /etc/php/$(php -r "echo PHP_MAJOR_VERSION.\".\".PHP_MINOR_VERSION;")/apache2/conf.d/20-pdo_sqlsrv.ini'
+
+# Deploy our version of adminer modified to work with Azure
+
+cd /var/www/html
+sudo git clone https://github.com/mamonaco1973/azure-adminer.git adminer-full
+sudo ln -sfn /var/www/html/adminer-full/adminer /var/www/html/adminer
 
 # ===========================
 # REPLACE DEFAULT APACHE INDEX PAGE
