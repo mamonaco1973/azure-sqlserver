@@ -1,40 +1,39 @@
 #!/bin/bash
 
 #-------------------------------------------------------------------------------
-# Output pgweb URL and postgres DNS name
+# Output adminer URL and SQL Server DNS name
 #-------------------------------------------------------------------------------
 
-# PGWEB_DNS_NAME=$(az network public-ip show \
-#   --name pgweb-vm-public-ip \
-#   --resource-group postgres-rg \
-#   --query "dnsSettings.fqdn" \
-#   --output tsv)
+ADMINER_DNS_NAME=$(az network public-ip show \
+   --name adminer-vm-public-ip \
+   --resource-group sqlserver-rg \
+   --query "dnsSettings.fqdn" \
+   --output tsv)
 
-# echo "NOTE: pgweb running at http://$PGWEB_DNS_NAME"
+echo "NOTE: Adminer running at http://$ADMINER_DNS_NAME"
 
-# # Wait until the pgweb URL is reachable (HTTP 200 or similar)
-# echo "NOTE: Waiting for pgweb to become available at http://$PGWEB_DNS_NAME ..."
+# Wait until the adminer URL is reachable (HTTP 200 or similar)
+echo "NOTE: Waiting for adminer to become available at http://$ADMINER_DNS_NAME..."
 
-# # Max attempts (optional)
-# MAX_ATTEMPTS=30
-# ATTEMPT=1
+# Max attempts (optional)
+MAX_ATTEMPTS=30
+ATTEMPT=1
 
-# until curl -s --fail "http://$PGWEB_DNS_NAME" > /dev/null; do
-#   if [ "$ATTEMPT" -ge "$MAX_ATTEMPTS" ]; then
-#     echo "ERROR: pgweb did not become available after $MAX_ATTEMPTS attempts."
-#     exit 1
-#   fi
-#   echo "WARNING: pgweb not yet reachable. Retrying in 30 seconds..."
-#   sleep 30
-#   ATTEMPT=$((ATTEMPT+1))
-# done
+until curl -s --fail "http://$ADMINER_DNS_NAME" > /dev/null; do
+   if [ "$ATTEMPT" -ge "$MAX_ATTEMPTS" ]; then
+     echo "ERROR: pgweb did not become available after $MAX_ATTEMPTS attempts."
+     exit 1
+   fi
+   echo "WARNING: pgweb not yet reachable. Retrying in 30 seconds..."
+   sleep 30
+   ATTEMPT=$((ATTEMPT+1))
+done
 
-# PG_DNS=$(az postgres flexible-server list \
-#   --resource-group postgres-rg \
-#   --query "[?starts_with(name, 'postgres-instance')].fullyQualifiedDomainName" \
-#   --output tsv)
+SQL_SERVER_DNS=$(az sql server list --resource-group sqlserver-rg \
+     --query "[?starts_with(name, 'sqlserver')].fullyQualifiedDomainName" \
+     -o tsv)
 
-# echo "NOTE: Hostname for postgres server is \"$PG_DNS\""
+echo "NOTE: Hostname for SQL Server is \"$SQL_SERVER_DNS\""
 
 #-------------------------------------------------------------------------------
 # END OF SCRIPT
