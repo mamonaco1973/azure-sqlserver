@@ -68,43 +68,14 @@ sqlcmd -S "$DBENDPOINT" -U "$DBUSER" -P "$DBPASSWORD" -d pagila -i "4.pagila-sch
 # INSTALL ADMINER (WEB CLIENT)
 # ===========================
 
-# Install Apache and PHP core modules
-sudo apt-get install -y apache2 php php-xml php-mbstring php-zip
-
-# Install SQL Server PHP drivers from Microsoft repo (since repo already added above)
-sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 php-sqlsrv php-pdo_sqlsrv
+# Install Apache2 web server, PHP interpreter, and Sybase PHP module (for SQL Server compatibility).
+sudo apt install apache2 php libapache2-mod-php php-sybase -y
 
 # Create Adminer’s directory under the Apache web root if it does not already exist.
 sudo mkdir -p /var/www/html/adminer
-sudo mkdir -p /var/www/html/adminer/plugins
 
 # Download the latest version of Adminer (single PHP file) and store it as index.php in Adminer’s directory.
-sudo wget https://www.adminer.org/latest.php -O /var/www/html/adminer/adminer.php
-sudo wget https://raw.githubusercontent.com/vrana/adminer/master/plugins/plugin.php -O /var/www/html/adminer/plugins/plugin.php
-
-sudo tee /var/www/html/adminer/index.php > /dev/null <<EOF
-<?php
-function adminer_object() {
-    include_once __DIR__ . "/plugins/plugin.php";
-    include_once __DIR__ . "/plugins/AdminerTlsPlugin.php";
-    return new AdminerPlugin([
-        new AdminerTlsPlugin()
-    ]);
-}
-include __DIR__ . "/adminer.php";
-EOF
-
-sudo tee /var/www/html/adminer/plugins/AdminerTlsPlugin.php > /dev/null <<EOF
-<?php
-class AdminerTlsPlugin {
-    function connectSsl() {
-        return [
-            "Encrypt" => true,
-            "TrustServerCertificate" => false
-        ];
-    }
-}
-EOF
+sudo wget https://www.adminer.org/latest.php -O /var/www/html/adminer/index.php
 
 # ===========================
 # REPLACE DEFAULT APACHE INDEX PAGE
