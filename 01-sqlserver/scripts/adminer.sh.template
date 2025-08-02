@@ -55,7 +55,7 @@ cd /tmp
 git clone https://github.com/mamonaco1973/pagila-sqlserver.git
 cd pagila-sqlserver
 
-sqlcmd -S "$DBENDPOINT" -U "$DBUSER" -P "$DBPASSWORD" -d pagila -i "1.pagila-create-db.sql"   > /tmp/1.pagila-create-db.sql.log 2> /tmp/1.pagila-create-db.sql.error
+sqlcmd -S "$DBENDPOINT" -U "$DBUSER" -P "$DBPASSWORD" -i "1.pagila-create-db.sql"   > /tmp/1.pagila-create-db.sql.log 2> /tmp/1.pagila-create-db.sql.error
 sqlcmd -S "$DBENDPOINT" -U "$DBUSER" -P "$DBPASSWORD" -d pagila -i "2.pagila-tables.sql"      > /tmp/2.pagila-tables.sql.log 2> /tmp/2.pagila-tables.sql.error
 sqlcmd -S "$DBENDPOINT" -U "$DBUSER" -P "$DBPASSWORD" -d pagila -i "3.pagila-data.sql"        > /tmp/3.pagila-data.sql.log 2> /tmp/3.pagila-data.sql.error
 sqlcmd -S "$DBENDPOINT" -U "$DBUSER" -P "$DBPASSWORD" -d pagila -i "4.pagila-schema.sql"      > /tmp/4.pagila-schema.sql.log 2> /tmp/4.pagila-schema.sql.error
