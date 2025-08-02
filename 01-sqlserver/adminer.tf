@@ -61,7 +61,7 @@ resource "azurerm_linux_virtual_machine" "adminer-vm" {
   custom_data = base64encode(templatefile("./scripts/adminer.sh.template", {
     DBPASSWORD = random_password.sqlserver_password.result
     DBUSER     = "sqladmin"
-    DBENDPOINT = "nslookup sqlserver-${random_string.suffix.result}.privatelink.database.windows.net"
+    DBENDPOINT = "sqlserver-${random_string.suffix.result}.privatelink.database.windows.net"
   }))
 
   depends_on = [azurerm_mssql_server.sql_server_instance] # Ensure SQL Server is created before VM
