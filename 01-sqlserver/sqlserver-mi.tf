@@ -1,4 +1,3 @@
-
 # =================================================================================
 # CREATE SQL MANAGED INSTANCE
 # =================================================================================
@@ -17,4 +16,3 @@ resource "azurerm_mssql_managed_instance" "sql_mi" {
   collation                     = "SQL_Latin1_General_CP1_CI_AS"
   minimum_tls_version           = "1.2"
 }
-

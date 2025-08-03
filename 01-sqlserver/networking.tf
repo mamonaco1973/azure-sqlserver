@@ -9,7 +9,7 @@ resource "azurerm_virtual_network" "project-vnet" {
 }
 
 # =================================================================================
-# DEFINE SUBNET FOR SQL SERVER FLEXIBLE SERVER
+# DEFINE SUBNET FOR SQL SERVER 
 # =================================================================================
 resource "azurerm_subnet" "sqlserver-subnet" {
   name                 = var.project_subnet                        # Subnet name (from variable)
@@ -19,7 +19,7 @@ resource "azurerm_subnet" "sqlserver-subnet" {
 }
 
 # =================================================================================
-# CREATE NETWORK SECURITY GROUP (NSG) FOR POSTGRESQL SUBNET
+# CREATE NETWORK SECURITY GROUP (NSG) FOR SQL SERVER SUBNET
 # =================================================================================
 resource "azurerm_network_security_group" "sqlserver-nsg" {
   name                = "sqlserver-nsg"                        # NSG name
@@ -119,4 +119,62 @@ resource "azurerm_subnet" "sql_mi_subnet" {
       ]
     }
   }
+}
+
+# =================================================================================
+# CREATE NETWORK SECURITY GROUP (NSG) FOR MANAGED SQL SERVER SUBNET
+# =================================================================================
+
+resource "azurerm_network_security_group" "sql_mi_nsg" {
+  name                = "sql-mi-nsg"
+  location            = var.project_location                   # Region (from variable)
+  resource_group_name = azurerm_resource_group.project_rg.name # Target RG
+
+  # Allow inbound SQL traffic (1433) from app subnet
+  security_rule {
+    name                       = "Allow-SQLMI"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "1433"
+    source_address_prefix      = "*" 
+    destination_address_prefix = "*"
+  }
+
+  # Allow Azure Load Balancer health probes
+  security_rule {
+    name                       = "Allow-Azure-LB"
+    priority                   = 200
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "AzureLoadBalancer"
+    destination_address_prefix = "*"
+  }
+
+  # Allow outbound access to Azure
+  security_rule {
+    name                       = "Allow-All-Outbound"
+    priority                   = 100
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
+# =================================================================================
+# ASSOCIATE SQL SERVER MANAGED SUBNET WITH ITS NSG
+# =================================================================================
+
+resource "azurerm_subnet_network_security_group_association" "sqlserver-mi-nsg-assoc" {
+  subnet_id                 = azurerm_subnet.sql_mi_subnet.id              # Subnet reference
+  network_security_group_id = azurerm_network_security_group.sql_mi_nsg.id # NSG reference
 }
