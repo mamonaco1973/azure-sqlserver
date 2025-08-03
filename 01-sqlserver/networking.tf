@@ -100,3 +100,23 @@ resource "azurerm_subnet_network_security_group_association" "vm-nsg-assoc" {
   subnet_id                 = azurerm_subnet.vm-subnet.id              # Subnet reference
   network_security_group_id = azurerm_network_security_group.vm-nsg.id # NSG reference
 }
+
+# =================================================================================
+# CREATE SUBNET FOR MANAGED INSTANCE
+# =================================================================================
+resource "azurerm_subnet" "sql_mi_subnet" {
+  name                 = "sql-mi-subnet"
+  resource_group_name  = azurerm_resource_group.project_rg.name
+  virtual_network_name = azurerm_virtual_network.project-vnet.name
+  address_prefixes     = ["10.0.2.0/24"]
+
+  delegation {
+    name = "managedinstancedelegation"
+    service_delegation {
+      name = "Microsoft.Sql/managedInstances"
+      actions = [
+        "Microsoft.Network/virtualNetworks/subnets/join/action",
+      ]
+    }
+  }
+}
