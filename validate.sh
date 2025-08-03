@@ -19,7 +19,7 @@ echo "NOTE: Waiting for adminer to become available at http://$ADMINER_DNS_NAME.
 MAX_ATTEMPTS=30
 ATTEMPT=1
 
-until curl -s --fail "http://$ADMINER_DNS_NAME" > /dev/null; do
+until curl -s --fail "http://$ADMINER_DNS_NAME/adminer" > /dev/null; do
    if [ "$ATTEMPT" -ge "$MAX_ATTEMPTS" ]; then
      echo "ERROR: Adminer did not become available after $MAX_ATTEMPTS attempts."
      exit 1
