@@ -108,7 +108,7 @@ resource "azurerm_subnet" "sql_mi_subnet" {
   name                 = "sql-mi-subnet"
   resource_group_name  = azurerm_resource_group.project_rg.name
   virtual_network_name = azurerm_virtual_network.project-vnet.name
-  address_prefixes     = ["10.0.2.0/24"]
+  address_prefixes     = ["10.0.1.128/25"]
 
   delegation {
     name = "managedinstancedelegation"
