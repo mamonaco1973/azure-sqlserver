@@ -21,10 +21,10 @@ ATTEMPT=1
 
 until curl -s --fail "http://$ADMINER_DNS_NAME" > /dev/null; do
    if [ "$ATTEMPT" -ge "$MAX_ATTEMPTS" ]; then
-     echo "ERROR: pgweb did not become available after $MAX_ATTEMPTS attempts."
+     echo "ERROR: Adminer did not become available after $MAX_ATTEMPTS attempts."
      exit 1
    fi
-   echo "WARNING: pgweb not yet reachable. Retrying in 30 seconds..."
+   echo "WARNING: Adminer not yet reachable. Retrying in 30 seconds..."
    sleep 30
    ATTEMPT=$((ATTEMPT+1))
 done
