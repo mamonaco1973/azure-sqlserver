@@ -18,7 +18,7 @@ resource "azurerm_mssql_managed_instance" "sql_mi" {
 
   depends_on = [
     azurerm_subnet_network_security_group_association.sql_mi_nsg_assoc,
-    azurerm_subnet_route_table_association.sql_mi_route_assoc
+    azurerm_subnet_route_table_association.sql_mi_rt_assoc
   ]
 
 }
