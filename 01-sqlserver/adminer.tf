@@ -62,7 +62,7 @@ resource "azurerm_linux_virtual_machine" "adminer-vm" {
     DBPASSWORD    = random_password.sqlserver_password.result
     DBUSER        = "sqladmin"
     DBENDPOINT    = "sqlserver-${random_string.suffix.result}.database.windows.net"
-    DBENDPOINT_MI = "sqlmi-${random_string.suffix.result}.database.windows.net"
+    DBENDPOINT_MI = azurerm_mssql_managed_instance.sql_mi.fully_qualified_domain_name
   }))
 
   depends_on = [azurerm_mssql_server.sql_server_instance,

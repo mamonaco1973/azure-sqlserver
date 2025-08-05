@@ -35,6 +35,19 @@ SQL_SERVER_DNS=$(az sql server list --resource-group sqlserver-rg \
 
 echo "NOTE: Hostname for SQL Server is \"$SQL_SERVER_DNS\""
 
+MI_INSTANCE=$(az sql mi list \
+  --resource-group sqlserver-rg \
+  --query "[?starts_with(name, 'sqlmi')].name" \
+  --output tsv)
+
+if [ -n "$MI_INSTANCE" ]; then
+  HOSTNAME=$(az sql mi show \
+    --name "$MI_INSTANCE" \
+    --resource-group sqlserver-rg \
+    --query fullyQualifiedDomainName \
+    --output tsv)
+  echo "NOTE: Hostname for Managed SQL Server Instance is \"$HOSTNAME\"";
+
 #-------------------------------------------------------------------------------
 # END OF SCRIPT
 #-------------------------------------------------------------------------------
