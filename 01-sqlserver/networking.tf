@@ -55,7 +55,7 @@ resource "azurerm_subnet" "vm-subnet" {
   name                 = "vm-subnet"                               # Subnet name (from variable)
   resource_group_name  = azurerm_resource_group.project_rg.name    # RG must match VNet's
   virtual_network_name = azurerm_virtual_network.project-vnet.name # Link to parent VNet
-  address_prefixes     = ["10.0.0.128/25"]                           # 128 IPs (upper half of /23)
+  address_prefixes     = ["10.0.0.128/25"]                         # 128 IPs (upper half of /23)
 }
 
 # =================================================================================
@@ -139,7 +139,7 @@ resource "azurerm_network_security_group" "sql_mi_nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "1433"
-    source_address_prefix      = "*" 
+    source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 
@@ -177,4 +177,22 @@ resource "azurerm_network_security_group" "sql_mi_nsg" {
 resource "azurerm_subnet_network_security_group_association" "sqlserver-mi-nsg-assoc" {
   subnet_id                 = azurerm_subnet.sql_mi_subnet.id              # Subnet reference
   network_security_group_id = azurerm_network_security_group.sql_mi_nsg.id # NSG reference
+}
+
+
+# =================================================================================
+# CREATE ROUTE TABLE FOR SQL MI SUBNET
+# =================================================================================
+resource "azurerm_route_table" "sql_mi_rt" {
+  name                = "sql-mi-route-table"
+  location            = var.project_location
+  resource_group_name = azurerm_resource_group.project_rg.name
+}
+
+# =================================================================================
+# ASSOCIATE ROUTE TABLE WITH SQL MI SUBNET
+# =================================================================================
+resource "azurerm_subnet_route_table_association" "sql_mi_rt_assoc" {
+  subnet_id      = azurerm_subnet.sql_mi_subnet.id
+  route_table_id = azurerm_route_table.sql_mi_rt.id
 }
