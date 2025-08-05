@@ -59,12 +59,14 @@ resource "azurerm_linux_virtual_machine" "adminer-vm" {
   # ------------------------------------------------------
 
   custom_data = base64encode(templatefile("./scripts/adminer.sh.template", {
-    DBPASSWORD = random_password.sqlserver_password.result
-    DBUSER     = "sqladmin"
-    DBENDPOINT = "sqlserver-${random_string.suffix.result}.privatelink.database.windows.net"
+    DBPASSWORD    = random_password.sqlserver_password.result
+    DBUSER        = "sqladmin"
+    DBENDPOINT    = "sqlserver-${random_string.suffix.result}.database.windows.net"
+    DBENDPOINT_MI = "sqlmi-${random_string.suffix-mi.result}.database.windows.net"
   }))
 
-  depends_on = [azurerm_mssql_server.sql_server_instance] # Ensure SQL Server is created before VM
+  depends_on = [azurerm_mssql_server.sql_server_instance,
+  azurerm_mssql_managed_instance.sql_mi] # Ensure SQL Servers are created before VM
 
 }
 resource "azurerm_public_ip" "adminer_vm_public_ip" {

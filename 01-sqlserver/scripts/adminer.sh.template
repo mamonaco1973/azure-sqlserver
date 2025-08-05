@@ -40,6 +40,7 @@ export PATH="$PATH:/opt/mssql-tools/bin"
 export DBUSER="${DBUSER}"
 export DBPASSWORD="${DBPASSWORD}"
 export DBENDPOINT="${DBENDPOINT}"
+export DBENDPOINT_MI="${DBENDPOINT_MI}"
 
 # ===========================
 # EXECUTE SQL FILES IN ORDER
@@ -55,12 +56,22 @@ cd /tmp
 git clone https://github.com/mamonaco1973/pagila-sqlserver.git
 cd pagila-sqlserver
 
+# First load pagilda database in single server instance
+
 sqlcmd -S "$DBENDPOINT" -U "$DBUSER" -P "$DBPASSWORD" -i "1.pagila-create-db.sql"   > /tmp/1.pagila-create-db.sql.log 2> /tmp/1.pagila-create-db.sql.error
 sqlcmd -S "$DBENDPOINT" -U "$DBUSER" -P "$DBPASSWORD" -d pagila -i "2.pagila-tables.sql"      > /tmp/2.pagila-tables.sql.log 2> /tmp/2.pagila-tables.sql.error
 sqlcmd -S "$DBENDPOINT" -U "$DBUSER" -P "$DBPASSWORD" -d pagila -i "3.pagila-data.sql"        > /tmp/3.pagila-data.sql.log 2> /tmp/3.pagila-data.sql.error
 sqlcmd -S "$DBENDPOINT" -U "$DBUSER" -P "$DBPASSWORD" -d pagila -i "4.pagila-schema.sql"      > /tmp/4.pagila-schema.sql.log 2> /tmp/4.pagila-schema.sql.error
 
+# Now load pagilda database in managed instance
+
+sqlcmd -S "$DBENDPOINT_MI" -U "$DBUSER" -P "$DBPASSWORD" -i "1.pagila-create-db.sql"   > /tmp/5.pagila-create-db.sql.log 2> /tmp/5.pagila-create-db.sql.error
+sqlcmd -S "$DBENDPOINT_MI" -U "$DBUSER" -P "$DBPASSWORD" -d pagila -i "2.pagila-tables.sql"      > /tmp/6.pagila-tables.sql.log 2> /tmp/6.pagila-tables.sql.error
+sqlcmd -S "$DBENDPOINT_MI" -U "$DBUSER" -P "$DBPASSWORD" -d pagila -i "3.pagila-data.sql"        > /tmp/7.pagila-data.sql.log 2> /tmp/7.pagila-data.sql.error
+sqlcmd -S "$DBENDPOINT_MI" -U "$DBUSER" -P "$DBPASSWORD" -d pagila -i "4.pagila-schema.sql"      > /tmp/8.pagila-schema.sql.log 2> /tmp/8.pagila-schema.sql.error
+
 # NOTES:
+
 # - The order of execution is important: database creation → data load → views → schema changes.
 # - If any script fails, sqlcmd will still attempt the next script. Consider adding "set -e" for strict failure handling.
 
