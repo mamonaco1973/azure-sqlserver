@@ -15,4 +15,10 @@ resource "azurerm_mssql_managed_instance" "sql_mi" {
   public_data_endpoint_enabled = false
   collation                    = "SQL_Latin1_General_CP1_CI_AS"
   minimum_tls_version          = "1.2"
+
+  depends_on = [
+    azurerm_subnet_network_security_group_association.sql_mi_nsg_assoc,
+    azurerm_subnet_route_table_association.sql_mi_route_assoc
+  ]
+
 }

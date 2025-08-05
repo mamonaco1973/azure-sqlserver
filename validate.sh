@@ -52,7 +52,7 @@ if [ -n "$MI_INSTANCE" ]; then
     --resource-group sqlserver-rg \
     --query fullyQualifiedDomainName \
     --output tsv)
-  echo "NOTE: Hostname for Managed SQL Server Instance is \"$HOSTNAME\"";
+  echo "NOTE: Hostname for Managed SQL Server Instance is \"$HOSTNAME\""
 
 #-------------------------------------------------------------------------------
 # END OF SCRIPT
