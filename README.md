@@ -1,30 +1,39 @@
-# Deploying SQL Server on Azure
+# Deploying Azure SQL Server with Managed Instance, Private Networking, and Adminer
 
-This project demonstrates how to deploy a secure, private Microsoft Azure SQL Server instance using Terraform.
+This project demonstrates how to deploy a secure, private Microsoft Azure SQL Server environment using Terraform. The deployment provisions both a **standard Azure SQL Server instance** and a **SQL Managed Instance (MI)**, integrated into a custom virtual network with private endpoints, secured by a Private DNS Zone, and leveraging Azure Key Vault for credential storage. A lightweight Ubuntu virtual machine running [Adminer](https://www.adminer.org/) is also deployed to provide private, browser-based access to the databases.
 
-The deployment provisions a fully managed Azure SQL Server with public network access disabled, integrated into a custom virtual network and secured with a Private DNS Zone for internal name resolution. Additionally, the project provisions a lightweight Ubuntu virtual machine that runs [Adminer](https://www.adminer.org/), a browser-based SQL client, allowing private, browser-accessible interaction with the SQL Server database.
-
-As part of the configuration, we deploy the [Pagila-SQLServer](https://github.com/mamonaco1973/pagila-sqlserver) sample dataset—a fictional DVD rental database—to showcase real-world querying and administration in a private cloud context. This solution is ideal for developers and teams looking to build secure, internal-facing applications without exposing SQL Server to the public internet.
+As part of the configuration, the [Pagila-SQLServer](https://github.com/mamonaco1973/pagila-sqlserver) sample dataset—a fictional DVD rental database—is deployed to demonstrate real-world querying and database administration in a private cloud context. This solution is ideal for developers and teams building internal-facing applications requiring secure, private access to SQL Server resources.
 
 ![diagram](azure-sqlserver.png)
 
 ## What You'll Learn
 
-- How to deploy a fully private Azure SQL Server using Terraform
-- How to configure a custom virtual network, subnet, and Private DNS Zone for secure, internal connectivity
-- How to provision a VM running `Adminer` for private browser-based database access
-- Best practices for securing Azure-managed SQL Servers with private endpoints and infrastructure-as-code
+- How to deploy **both Azure SQL Server and SQL Managed Instance** using Terraform
+- How to configure a **custom virtual network, subnets, route tables, and Private DNS Zones** for secure, internal-only connectivity
+- How to use **Azure Key Vault** to securely store and retrieve database credentials
+- How to provision an **Adminer VM** for browser-based database administration
+- Best practices for **private endpoints, secure connectivity, and TLS enforcement** in Azure SQL deployments
 
-## Overview of Azure SQL Database
+## Comparing Azure SQL Server and Azure SQL Managed Instance
 
+Azure offers two main PaaS deployment options for SQL Server workloads. This project deploys both for demonstration purposes:
+
+| Feature                        | Azure SQL Server (Single Server)                                | Azure SQL Managed Instance (MI)                               |
+|--------------------------------|-----------------------------------------------------------------|---------------------------------------------------------------|
+| **Purpose**                    | Lightweight, cost-effective managed SQL database               | Full SQL Server engine compatibility in a managed service    |
+| **SQL Server Feature Support** | Limited compared to on-prem SQL Server                         | Nearly 100% compatibility with on-prem SQL Server            |
+| **Networking**                 | Private endpoint or public endpoint options                    | Deployed into private VNet, fully isolated                   |
+| **Instance-level features**    | No SQL Agent, limited cross-database queries                   | Supports SQL Agent, cross-database transactions, CLR, etc.   |
+| **Managed Maintenance**        | Fully managed patches, backups, HA                            | Fully managed, with more control over maintenance windows    |
+| **Best Use Case**              | Simple applications, microservices backends                   | Enterprise workloads requiring full SQL Server capabilities  |
+
+This project provisions both resources, allowing you to test connectivity, compare features, and choose the right fit for your use case.
 
 ## Prerequisites
 
-* [An Azure Account](https://portal.azure.com/)
-* [Install AZ CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) 
-* [Install Latest Terraform](https://developer.hashicorp.com/terraform/install)
-
-If this is your first time watching our content, we recommend starting with this video: [Azure + Terraform: Easy Setup](https://youtu.be/j4aRjgH5H8Q). It provides a step-by-step guide to properly configure Terraform and the AZ CLI.
+* [Azure Account](https://portal.azure.com/)
+* [AZ CLI Installed](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) 
+* [Terraform Installed](https://developer.hashicorp.com/terraform/install)
 
 ## Download this Repository
 
@@ -61,46 +70,44 @@ Terraform has been successfully initialized!
 
 After applying the Terraform scripts, the following Azure resources will be created:
 
-### Virtual Network & Subnet
-- Virtual Network: `sqlserver-vnet`
+### Networking (networking.tf)
+- Virtual Network: `project-vnet`  
   - Address space: `10.0.0.0/23`
-- Subnet for SQL Server: `sqlserver-subnet`
-  - Address range: `10.0.0.0/25`
-- Network Security Group: `sqlserver-nsg`
-  - Allows inbound SQL traffic on port 1433 from the Adminer VM
+- Subnet for SQL Server: `sqlserver-subnet` (`10.0.0.0/25`)
+- Subnet for SQL Managed Instance: `sql-mi-subnet` with required route table
+- Private DNS Zone for private link resolution
+- NSG rules allowing SQL traffic from Adminer VM
 
-### Private DNS & Networking
-- Private DNS Zone: `internal.sqlserver-zone.local`
-  - Enables internal name resolution for the private SQL Server endpoint
-- Private Endpoint:
-  - Linked to the Azure SQL Server
-  - Associated with the custom subnet and DNS zone
-
-### Azure Key Vault
+### Azure Key Vault (vault.tf)
 - Key Vault: `creds-kv-suffix`
-  - Stores credentials securely
-  - Access granted via Key Vault policy
+  - Stores SQL admin credentials
+  - Access policies grant Adminer VM read permissions
 
-### Azure SQL Server
-- Server Name: Defined in variables
-- Configuration:
-  - Private access only (public network access disabled)
-  - TLS 1.2 enforced for all connections
-  - Admin credentials retrieved from Azure Key Vault
-  - Preloaded with the [Pagila-SQLServer sample database](https://github.com/mamonaco1973/pagila-sqlserver)
+### Azure SQL Server (sqlserver.tf)
+- Deployed with:
+  - Private network access only
+  - TLS 1.2 enforced
+  - Admin credentials stored in Key Vault
+  - Preloaded with [Pagila-SQLServer sample database](https://github.com/mamonaco1973/pagila-sqlserver)
 
-### Virtual Machine (Adminer)
-- VM Name: `adminer-vm`
-  - Ubuntu-based VM to host `Adminer` client
-  - Deployed in the same virtual network
-  - Connected privately to the SQL Server
-  - Configured to launch `Adminer` and expose a browser-based SQL Server UI
+### Azure SQL Managed Instance (sqlserver-mi.tf)
+- Fully managed Azure SQL MI
+- Private endpoint and DNS integration
+- Configured vCores, storage, collation, and TLS
+
+### Adminer VM (adminer.tf)
+- Ubuntu-based virtual machine
+- Hosts Adminer for browser-based SQL administration
+- Connected privately to both SQL Server and MI
 
 ## Adminer Demo
 
 [Adminer](https://www.adminer.org/) is a lightweight web-based SQL database management tool.
 
 ![adminer](adminer.png)
+
+Example queries against the Pagila sample database:
+
 Query 1:
 ```sql
 SELECT TOP 100                       -- Limit the number of rows returned to 100
