@@ -10,6 +10,12 @@ ADMINER_DNS_NAME=$(az network public-ip show \
    --query "dnsSettings.fqdn" \
    --output tsv)
 
+# Exit script if DNS name is empty or null
+if [[ -z "$ADMINER_DNS_NAME" ]]; then
+    echo "ERROR: ADMINER_DNS_NAME is empty. Exiting script."
+    exit 1
+fi
+
 echo "NOTE: Adminer running at http://$ADMINER_DNS_NAME"
 
 # Wait until the adminer URL is reachable (HTTP 200 or similar)
