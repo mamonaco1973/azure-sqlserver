@@ -31,9 +31,11 @@ This project provisions both resources, allowing you to test connectivity, compa
 
 ## Prerequisites
 
-* [Azure Account](https://portal.azure.com/)
-* [AZ CLI Installed](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) 
-* [Terraform Installed](https://developer.hashicorp.com/terraform/install)
+* [An Azure Account](https://portal.azure.com/)
+* [Install AZ CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) 
+* [Install Latest Terraform](https://developer.hashicorp.com/terraform/install)
+
+If this is your first time watching our content, we recommend starting with this video: [Azure + Terraform: Easy Setup](https://youtu.be/j4aRjgH5H8Q). It provides a step-by-step guide to properly configure Terraform, and the AZ CLI.
 
 ## Download this Repository
 
