@@ -18,7 +18,7 @@ resource "azurerm_key_vault" "credentials_key_vault" {
   sku_name                  = "standard"                                          # Standard SKU for general-purpose secrets
   tenant_id                 = data.azurerm_client_config.current.tenant_id        # Azure AD tenant of the current user
   purge_protection_enabled  = false                                               # Allow permanent deletion
-  enable_rbac_authorization = true                                                # Enable RBAC (preferred over legacy Access Policies)
+  rbac_authorization_enabled  = true                                              # Enable RBAC (preferred over legacy Access Policies)
 }
 
 # =================================================================================
