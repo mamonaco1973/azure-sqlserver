@@ -99,7 +99,7 @@ resource "azurerm_private_dns_a_record" "sql_dns_record" {
 
   records = [
     azurerm_private_endpoint.sql_private_endpoint
-      .private_service_connection[0]
-      .private_ip_address
+    .private_service_connection[0]
+    .private_ip_address
   ]
 }

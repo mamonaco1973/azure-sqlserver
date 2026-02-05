@@ -22,13 +22,13 @@ resource "random_string" "key_vault_suffix" {
 #   - Purge protection is disabled for quick-start / demo workflows.
 # ================================================================================
 resource "azurerm_key_vault" "credentials_key_vault" {
-  name                        = "creds-kv-${random_string.key_vault_suffix.result}"
-  resource_group_name         = azurerm_resource_group.project_rg.name
-  location                    = var.project_location
-  sku_name                    = "standard"
-  tenant_id                   = data.azurerm_client_config.current.tenant_id
-  purge_protection_enabled    = false
-  rbac_authorization_enabled  = true
+  name                       = "creds-kv-${random_string.key_vault_suffix.result}"
+  resource_group_name        = azurerm_resource_group.project_rg.name
+  location                   = var.project_location
+  sku_name                   = "standard"
+  tenant_id                  = data.azurerm_client_config.current.tenant_id
+  purge_protection_enabled   = false
+  rbac_authorization_enabled = true
 }
 
 
