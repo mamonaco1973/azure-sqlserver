@@ -1,75 +1,100 @@
-# =================================================================================
-# CREATE A VIRTUAL NETWORK (VNET) TO HOST ALL SUBNETS
-# =================================================================================
+# ================================================================================
+# VIRTUAL NETWORK: PROJECT VNET
+# ================================================================================
+# Creates the primary VNet that hosts all subnets for this deployment.
+#
+# CIDR PLAN:
+#   - VNet:        10.0.0.0/23
+#   - SQL subnet:  10.0.0.0/25
+#   - VM subnet:   10.0.0.128/25
+#   - MI subnet:   10.0.1.0/24
+# ================================================================================
 resource "azurerm_virtual_network" "project-vnet" {
-  name                = var.project_vnet                       # VNet name (from input variable)
-  address_space       = ["10.0.0.0/23"]                        # VNet CIDR range (512 IPs total)
-  location            = var.project_location                   # Azure region (from variable)
-  resource_group_name = azurerm_resource_group.project_rg.name # Resource group for the VNet
+  name                = var.project_vnet                       # VNet name (input)
+  address_space       = ["10.0.0.0/23"]                        # /23 = 512 IPs
+  location            = var.project_location                   # Azure region
+  resource_group_name = azurerm_resource_group.project_rg.name # Target RG
 }
 
-# =================================================================================
-# DEFINE SUBNET FOR SQL SERVER 
-# =================================================================================
+# ================================================================================
+# SUBNET: SQL SERVER
+# ================================================================================
+# Subnet used for SQL Server-related resources (non-Managed Instance).
+# ================================================================================
 resource "azurerm_subnet" "sqlserver-subnet" {
-  name                 = var.project_subnet                        # Subnet name (from variable)
-  resource_group_name  = azurerm_resource_group.project_rg.name    # Must match VNet's RG
-  virtual_network_name = azurerm_virtual_network.project-vnet.name # Link to parent VNet
-  address_prefixes     = ["10.0.0.0/25"]                           # 128 IPs (lower half of /23)
+  name                 = var.project_subnet                        # Subnet name
+  resource_group_name  = azurerm_resource_group.project_rg.name    # Same RG
+  virtual_network_name = azurerm_virtual_network.project-vnet.name # Parent VNet
+  address_prefixes     = ["10.0.0.0/25"]                           # /25 = 128 IPs
 }
 
-# =================================================================================
-# CREATE NETWORK SECURITY GROUP (NSG) FOR SQL SERVER SUBNET
-# =================================================================================
+# ================================================================================
+# NSG: SQL SERVER SUBNET
+# ================================================================================
+# Network Security Group applied to the SQL Server subnet.
+#
+# NOTE:
+#   This rule is permissive ("*"). Prefer restricting to VM subnet CIDR
+#   or specific admin IPs for tighter security.
+# ================================================================================
 resource "azurerm_network_security_group" "sqlserver-nsg" {
   name                = "sqlserver-nsg"                        # NSG name
-  location            = var.project_location                   # Region (from variable)
+  location            = var.project_location                   # Azure region
   resource_group_name = azurerm_resource_group.project_rg.name # Target RG
 
-  # Allow inbound SQL Server traffic (default port 1433)
   security_rule {
     name                       = "Allow-SQLServer"
-    priority                   = 1000      # Rule priority (lower = higher)
-    direction                  = "Inbound" # Incoming traffic
-    access                     = "Allow"   # Allow traffic
-    protocol                   = "Tcp"     # TCP protocol
-    source_port_range          = "*"       # All source ports
-    destination_port_range     = "1433"    # SQL Server port
-    source_address_prefix      = "*"       # All IPs
-    destination_address_prefix = "*"       # All IPs
+    priority                   = 1000
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "1433"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
   }
 }
 
-# =================================================================================
-# ASSOCIATE SQL SERVER SUBNET WITH ITS NSG
-# =================================================================================
+# ================================================================================
+# NSG ASSOCIATION: SQL SERVER SUBNET
+# ================================================================================
+# Binds the SQL Server subnet to its NSG.
+# ================================================================================
 resource "azurerm_subnet_network_security_group_association" "sqlserver-nsg-assoc" {
-  subnet_id                 = azurerm_subnet.sqlserver-subnet.id              # Subnet reference
-  network_security_group_id = azurerm_network_security_group.sqlserver-nsg.id # NSG reference
+  subnet_id                 = azurerm_subnet.sqlserver-subnet.id
+  network_security_group_id = azurerm_network_security_group.sqlserver-nsg.id
 }
 
-# =================================================================================
-# DEFINE SUBNET FOR VIRTUAL MACHINES / APPLICATION WORKLOADS
-# =================================================================================
+# ================================================================================
+# SUBNET: VIRTUAL MACHINES / APP WORKLOADS
+# ================================================================================
+# Subnet used for Adminer / helper VMs and related app workloads.
+# ================================================================================
 resource "azurerm_subnet" "vm-subnet" {
-  name                 = "vm-subnet"                               # Subnet name (from variable)
-  resource_group_name  = azurerm_resource_group.project_rg.name    # RG must match VNet's
-  virtual_network_name = azurerm_virtual_network.project-vnet.name # Link to parent VNet
-  address_prefixes     = ["10.0.0.128/25"]                         # 128 IPs (upper half of /23)
+  name                 = "vm-subnet"                               # Subnet name
+  resource_group_name  = azurerm_resource_group.project_rg.name    # Same RG
+  virtual_network_name = azurerm_virtual_network.project-vnet.name # Parent VNet
+  address_prefixes     = ["10.0.0.128/25"]                         # /25 = 128 IPs
 }
 
-# =================================================================================
-# CREATE NETWORK SECURITY GROUP (NSG) FOR VM SUBNET
-# =================================================================================
+# ================================================================================
+# NSG: VM SUBNET
+# ================================================================================
+# Network Security Group applied to the VM subnet.
+#
+# NOTE:
+#   These rules are permissive ("*"). Prefer limiting:
+#     - SSH (22) to your public IP
+#     - HTTP (80) to only what you need
+# ================================================================================
 resource "azurerm_network_security_group" "vm-nsg" {
   name                = "vm-nsg"                               # NSG name
-  location            = var.project_location                   # Region (from variable)
+  location            = var.project_location                   # Azure region
   resource_group_name = azurerm_resource_group.project_rg.name # Target RG
 
-  # Allow inbound HTTP traffic on port 80
   security_rule {
     name                       = "Allow-HTTP"
-    priority                   = 1000 # Rule priority
+    priority                   = 1000
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
@@ -79,10 +104,9 @@ resource "azurerm_network_security_group" "vm-nsg" {
     destination_address_prefix = "*"
   }
 
-  # Allow inbound SSH traffic on port 22
   security_rule {
     name                       = "Allow-SSH"
-    priority                   = 1001 # Lower priority than HTTP
+    priority                   = 1001
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
@@ -93,17 +117,26 @@ resource "azurerm_network_security_group" "vm-nsg" {
   }
 }
 
-# =================================================================================
-# ASSOCIATE VM SUBNET WITH ITS NSG
-# =================================================================================
+# ================================================================================
+# NSG ASSOCIATION: VM SUBNET
+# ================================================================================
+# Binds the VM subnet to its NSG.
+# ================================================================================
 resource "azurerm_subnet_network_security_group_association" "vm-nsg-assoc" {
-  subnet_id                 = azurerm_subnet.vm-subnet.id              # Subnet reference
-  network_security_group_id = azurerm_network_security_group.vm-nsg.id # NSG reference
+  subnet_id                 = azurerm_subnet.vm-subnet.id
+  network_security_group_id = azurerm_network_security_group.vm-nsg.id
 }
 
-# =================================================================================
-# CREATE SUBNET FOR MANAGED INSTANCE
-# =================================================================================
+# ================================================================================
+# SUBNET: SQL MANAGED INSTANCE
+# ================================================================================
+# Dedicated subnet for SQL Managed Instance (MI).
+#
+# REQUIREMENTS:
+#   - Must be a dedicated subnet (no other resources).
+#   - Must be delegated to Microsoft.Sql/managedInstances.
+#   - Size requirements vary; /24 is commonly used.
+# ================================================================================
 resource "azurerm_subnet" "sql_mi_subnet" {
   name                 = "sql-mi-subnet"
   resource_group_name  = azurerm_resource_group.project_rg.name
@@ -112,6 +145,7 @@ resource "azurerm_subnet" "sql_mi_subnet" {
 
   delegation {
     name = "managedinstancedelegation"
+
     service_delegation {
       name = "Microsoft.Sql/managedInstances"
       actions = [
@@ -121,16 +155,20 @@ resource "azurerm_subnet" "sql_mi_subnet" {
   }
 }
 
-# =================================================================================
-# CREATE NETWORK SECURITY GROUP (NSG) FOR MANAGED SQL SERVER SUBNET
-# =================================================================================
-
+# ================================================================================
+# NSG: SQL MANAGED INSTANCE SUBNET
+# ================================================================================
+# Network Security Group applied to the SQL MI subnet.
+#
+# NOTE:
+#   SQL MI has specific network requirements. Keep rules aligned with
+#   Microsoft guidance for your chosen connectivity model.
+# ================================================================================
 resource "azurerm_network_security_group" "sql_mi_nsg" {
   name                = "sql-mi-nsg"
-  location            = var.project_location                   # Region (from variable)
-  resource_group_name = azurerm_resource_group.project_rg.name # Target RG
+  location            = var.project_location
+  resource_group_name = azurerm_resource_group.project_rg.name
 
-  # Allow inbound SQL traffic (1433) from app subnet
   security_rule {
     name                       = "Allow-SQLMI"
     priority                   = 100
@@ -143,7 +181,6 @@ resource "azurerm_network_security_group" "sql_mi_nsg" {
     destination_address_prefix = "*"
   }
 
-  # Allow Azure Load Balancer health probes
   security_rule {
     name                       = "Allow-Azure-LB"
     priority                   = 200
@@ -156,7 +193,6 @@ resource "azurerm_network_security_group" "sql_mi_nsg" {
     destination_address_prefix = "*"
   }
 
-  # Allow outbound access to Azure
   security_rule {
     name                       = "Allow-All-Outbound"
     priority                   = 100
@@ -170,28 +206,36 @@ resource "azurerm_network_security_group" "sql_mi_nsg" {
   }
 }
 
-# =================================================================================
-# ASSOCIATE SQL SERVER MANAGED SUBNET WITH ITS NSG
-# =================================================================================
-
+# ================================================================================
+# NSG ASSOCIATION: SQL MANAGED INSTANCE SUBNET
+# ================================================================================
+# Binds the SQL MI subnet to its NSG.
+# ================================================================================
 resource "azurerm_subnet_network_security_group_association" "sqlserver-mi-nsg-assoc" {
-  subnet_id                 = azurerm_subnet.sql_mi_subnet.id              # Subnet reference
-  network_security_group_id = azurerm_network_security_group.sql_mi_nsg.id # NSG reference
+  subnet_id                 = azurerm_subnet.sql_mi_subnet.id
+  network_security_group_id = azurerm_network_security_group.sql_mi_nsg.id
 }
 
-
-# =================================================================================
-# CREATE ROUTE TABLE FOR SQL MI SUBNET
-# =================================================================================
+# ================================================================================
+# ROUTE TABLE: SQL MANAGED INSTANCE SUBNET
+# ================================================================================
+# Creates a route table to associate with the SQL MI subnet.
+#
+# NOTE:
+#   SQL MI commonly requires a route table association even if no custom
+#   routes are defined initially.
+# ================================================================================
 resource "azurerm_route_table" "sql_mi_rt" {
   name                = "sql-mi-route-table"
   location            = var.project_location
   resource_group_name = azurerm_resource_group.project_rg.name
 }
 
-# =================================================================================
-# ASSOCIATE ROUTE TABLE WITH SQL MI SUBNET
-# =================================================================================
+# ================================================================================
+# ROUTE TABLE ASSOCIATION: SQL MANAGED INSTANCE SUBNET
+# ================================================================================
+# Binds the route table to the SQL MI subnet.
+# ================================================================================
 resource "azurerm_subnet_route_table_association" "sql_mi_rt_assoc" {
   subnet_id      = azurerm_subnet.sql_mi_subnet.id
   route_table_id = azurerm_route_table.sql_mi_rt.id
