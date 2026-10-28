@@ -1,156 +1,173 @@
-# Deploying Azure SQL Server with Managed Instance, Private Networking, and Adminer
+# SQL Server on Azure: Azure SQL Database and SQL Managed Instance with Adminer
 
-This project demonstrates how to deploy a secure, private Microsoft Azure SQL Server environment using Terraform. The deployment provisions both a **standard Azure SQL Server instance** and a **SQL Managed Instance (MI)**, integrated into a custom virtual network with private endpoints, secured by a Private DNS Zone, and leveraging Azure Key Vault for credential storage. A lightweight Ubuntu virtual machine running [Adminer](https://www.adminer.org/) is also deployed to provide private, browser-based access to the databases.
+Azure's two managed SQL Server options, built side by side with Terraform and
+loaded with the same data. An **Azure SQL Database** logical server sits
+behind a private endpoint, and a **SQL Managed Instance** runs inside its own
+delegated subnet. Neither has a public endpoint; an **Adminer** VM with a
+public IP gives you a browser client for both, and both are loaded with a
+SQL Server port of [Pagila](https://github.com/mamonaco1973/pagila-sqlserver).
 
-As part of the configuration, the [Pagila-SQLServer](https://github.com/mamonaco1973/pagila-sqlserver) sample dataset—a fictional DVD rental database—is deployed to demonstrate real-world querying and database administration in a private cloud context. This solution is ideal for developers and teams building internal-facing applications requiring secure, private access to SQL Server resources.
+![Adminer](adminer.png)
 
-![diagram](azure-sqlserver.png)
+| Piece | Where | Role |
+|---|---|---|
+| **Azure SQL Database** | private endpoint in `sqlserver-subnet` | logical server `sqlserver-<suffix>`, TLS 1.2, public network access disabled; the `pagila` database is created by the load script |
+| **Private endpoint + DNS** | `sqlserver-subnet`, linked to `sqlserver-vnet` | `sqlserver-pe`, and `privatelink.database.windows.net` with an A record for the server |
+| **SQL Managed Instance** | `sql-mi-subnet` (delegated) | `sqlmi-<suffix>`, General Purpose `GP_Gen5`, 4 vCores, 64 GB, license included, TLS 1.2, no public data endpoint |
+| **adminer-vm** | `vm-subnet`, public IP | Ubuntu 24.04, `Standard_B1s`; loads Pagila into both engines, then serves Adminer |
+| **Key Vault** | `sqlserver-rg` | `creds-kv-<suffix>`: `sqlserver-credentials` (admin for both engines) and `vm-credentials` (VM login) |
 
-## What You'll Learn
+## Architecture
 
-- How to deploy **both Azure SQL Server and SQL Managed Instance** using Terraform
-- How to configure a **custom virtual network, subnets, route tables, and Private DNS Zones** for secure, internal-only connectivity
-- How to use **Azure Key Vault** to securely store and retrieve database credentials
-- How to provision an **Adminer VM** for browser-based database administration
-- Best practices for **private endpoints, secure connectivity, and TLS enforcement** in Azure SQL deployments
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="architecture-dark.svg">
+  <img alt="A browser reaches adminer-vm, an Ubuntu 24.04 VM with a public IP, over HTTP. At boot the VM clones the Adminer fork and the Pagila scripts from GitHub, loads Pagila into both engines and serves Adminer. It reaches the Azure SQL logical server on port 1433 through a private endpoint, whose name resolves through a private DNS zone, and the SQL Managed Instance in its own delegated subnet. Neither engine has a public endpoint. The passwords are in Key Vault." src="architecture-light.svg">
+</picture>
 
-## Comparing Azure SQL Server and Azure SQL Managed Instance
+Regenerate with `python3 make_diagram.py`.
 
-Azure offers two main PaaS deployment options for SQL Server workloads. This project deploys both for demonstration purposes:
+- **`01-sqlserver/`** is the whole stack: the resource group
+  (`sqlserver-rg`), the VNet (`sqlserver-vnet`, 10.0.0.0/23) with
+  `sqlserver-subnet` (10.0.0.0/25), `vm-subnet` (10.0.0.128/25) and the
+  delegated `sql-mi-subnet` (10.0.1.0/24) with its NSG and route table, the
+  logical server and its private endpoint and DNS, the Managed Instance, the
+  Key Vault and passwords, and the Adminer VM.
 
-| Feature                        | Azure SQL Server (Single Server)                                | Azure SQL Managed Instance (MI)                               |
-|--------------------------------|-----------------------------------------------------------------|---------------------------------------------------------------|
-| **Purpose**                    | Lightweight, cost-effective managed SQL database               | Full SQL Server engine compatibility in a managed service    |
-| **SQL Server Feature Support** | Limited compared to on-prem SQL Server                         | Nearly 100% compatibility with on-prem SQL Server            |
-| **Networking**                 | Private endpoint or public endpoint options                    | Deployed into private VNet, fully isolated                   |
-| **Instance-level features**    | No SQL Agent, limited cross-database queries                   | Supports SQL Agent, cross-database transactions, CLR, etc.   |
-| **Managed Maintenance**        | Fully managed patches, backups, HA                            | Fully managed, with more control over maintenance windows    |
-| **Best Use Case**              | Simple applications, microservices backends                   | Enterprise workloads requiring full SQL Server capabilities  |
+## How the two engines differ
 
-This project provisions both resources, allowing you to test connectivity, compare features, and choose the right fit for your use case.
+| | Azure SQL Database | SQL Managed Instance |
+|---|---|---|
+| What you get | a logical server; databases are created on it individually | a full SQL Server instance |
+| Private access | private endpoint in a normal subnet, plus a private DNS zone | injected into its own delegated subnet |
+| Instance features | no SQL Agent, limited cross-database queries | SQL Agent, cross-database queries, CLR and other instance-level features |
+| Cost and build time | small and quick | the largest cost and the longest step in this lab |
+
+## How it boots
+
+1. Terraform builds the network, the Key Vault, both engines and the VM,
+   generating a 24-character password for the `sqladmin` login on both
+   engines and the `sysadmin` VM login. The VM waits for both engines.
+2. The VM installs Microsoft's `mssql-tools`, clones
+   [`pagila-sqlserver`](https://github.com/mamonaco1973/pagila-sqlserver), and
+   runs its four scripts with `sqlcmd` against each engine: create the
+   `pagila` database, then the tables, the data, and the views, functions and
+   indexes. The logical server's steps log to `/tmp/1.*` to `/tmp/4.*`, the
+   Managed Instance's to `/tmp/5.*` to `/tmp/8.*` (`.log` and `.error`).
+3. It installs Apache, PHP and the `sqlsrv` / `pdo_sqlsrv` drivers, clones
+   the [`azure-adminer`](https://github.com/mamonaco1973/azure-adminer) fork
+   of Adminer into `/var/www/html`, and redirects `/` to `/adminer`.
+
+## Network security
+
+```
+internet ─80, 22─▶ adminer-vm ─1433─▶ private endpoint ─▶ Azure SQL Database
+                              ─1433─▶ SQL Managed Instance (sql-mi-subnet)
+```
+
+| NSG | Subnet | Allows |
+|---|---|---|
+| `vm-nsg` | `vm-subnet` | 80 and 22 from anywhere |
+| `sqlserver-nsg` | `sqlserver-subnet` | 1433 from anywhere |
+| `sql-mi-nsg` | `sql-mi-subnet` | 1433 from anywhere, everything from `AzureLoadBalancer`, all outbound |
+
+Neither engine has a public endpoint, so the 1433 rules only matter inside the
+VNet.
 
 ## Prerequisites
 
 * [An Azure Account](https://portal.azure.com/)
-* [Install AZ CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) 
-* [Install Latest Terraform](https://developer.hashicorp.com/terraform/install)
+* [Install AZ CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
+* [Install Terraform](https://developer.hashicorp.com/terraform/install)
+* [Install jq](https://jqlang.github.io/jq/download/)
 
-If this is your first time watching our content, we recommend starting with this video: [Azure + Terraform: Easy Setup](https://youtu.be/j4aRjgH5H8Q). It provides a step-by-step guide to properly configure Terraform, and the AZ CLI.
+`check_env.sh` expects a service principal in `ARM_CLIENT_ID`,
+`ARM_CLIENT_SECRET`, `ARM_SUBSCRIPTION_ID` and `ARM_TENANT_ID`. If this is
+your first time watching our content, we recommend starting with this video:
+[Azure + Terraform: Easy Setup](https://youtu.be/j4aRjgH5H8Q).
 
-## Download this Repository
+## Deploy
 
 ```bash
 git clone https://github.com/mamonaco1973/azure-sqlserver.git
 cd azure-sqlserver
+./apply.sh       # one phase: VNet, Key Vault, both engines, Adminer VM
 ```
 
-## Build the Code
+Everything deploys to Central US. The Managed Instance is by far the slowest
+resource to create, so most of the run is spent waiting on it. `apply.sh`
+ends by running `validate.sh`, which waits for Adminer to answer (up to 15
+minutes) and prints:
 
-Run [check_env](check_env.sh) then run [apply](apply.sh).
+```
+======================================================================
+BUILD VALIDATION COMPLETE
+======================================================================
+Adminer URL:
+  http://adminer-a1b2c3.centralus.cloudapp.azure.com
+
+Azure SQL Server FQDN:
+  sqlserver-a1b2c3.database.windows.net
+
+Azure SQL Managed Instance FQDN:
+  sqlmi-a1b2c3.0123456789ab.database.windows.net
+======================================================================
+```
+
+## Try it
+
+1. Get the password from Key Vault:
+
+   ```bash
+   vault=$(az keyvault list -g sqlserver-rg --query "[0].name" -o tsv)
+   az keyvault secret show --vault-name "$vault" --name sqlserver-credentials \
+     --query value -o tsv | jq -r .password
+   ```
+
+2. Open the Adminer URL and sign in with System **MS SQL**, one engine's FQDN
+   as Server, user `sqladmin`, that password, and database `pagila`. Log out
+   and sign in with the other FQDN to switch engines.
+3. Run the same queries on both from **SQL command**:
+
+   ```sql
+   SELECT TOP 100
+       f.title AS film_title,
+       a.first_name + ' ' + a.last_name AS actor_name
+   FROM film f
+   JOIN film_actor fa ON f.film_id = fa.film_id
+   JOIN actor a ON fa.actor_id = a.actor_id
+   ORDER BY f.title, actor_name;
+   ```
+
+   ```sql
+   SELECT TOP 100
+       f.title,
+       STRING_AGG(a.first_name + ' ' + a.last_name, ', ') AS actor_names
+   FROM film f
+   JOIN film_actor fa ON f.film_id = fa.film_id
+   JOIN actor a ON fa.actor_id = a.actor_id
+   GROUP BY f.title
+   ORDER BY f.title;
+   ```
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| `validate.sh` keeps retrying | The VM is still installing; the PHP drivers build from source with `pecl`. SSH in as `sysadmin` (password in `vm-credentials`) and `sudo tail /var/log/cloud-init-output.log`. |
+| `pagila` is missing or empty on one engine | Read that engine's `/tmp/*.error` files on the VM (`1`–`4` for the logical server, `5`–`8` for the Managed Instance). |
+| Adminer can't reach the logical server | Its name must resolve to the private endpoint: `nslookup sqlserver-<suffix>.database.windows.net` on the VM should return a 10.0.0.x address. |
+| `apply.sh` runs for a long time | The Managed Instance is still being created; leave it running. |
+
+## Teardown
 
 ```bash
-~/azure-sqlserver$ ./apply.sh
-NOTE: Validating that required commands are found in your PATH.
-NOTE: az is found in the current PATH.
-NOTE: terraform is found in the current PATH.
-NOTE: jq is found in the current PATH.
-NOTE: All required commands are available.
-NOTE: Validating that required environment variables are set.
-NOTE: ARM_CLIENT_ID is set.
-NOTE: ARM_CLIENT_SECRET is set.
-NOTE: ARM_SUBSCRIPTION_ID is set.
-NOTE: ARM_TENANT_ID is set.
-NOTE: All required environment variables are set.
-NOTE: Logging in to Azure using Service Principal...
-NOTE: Successfully logged into Azure.
-Initializing the backend...
-Initializing provider plugins...
-Terraform has been successfully initialized!
+./destroy.sh     # destroys the Managed Instance first, then everything else
 ```
 
-## Build Results
+## Notes
 
-After applying the Terraform scripts, the following Azure resources will be created:
-
-### Networking (networking.tf)
-- Virtual Network: `project-vnet`  
-  - Address space: `10.0.0.0/23`
-- Subnet for SQL Server: `sqlserver-subnet` (`10.0.0.0/25`)
-- Subnet for SQL Managed Instance: `sql-mi-subnet` with required route table
-- Private DNS Zone for private link resolution
-- NSG rules allowing SQL traffic from Adminer VM
-
-### Azure Key Vault (vault.tf)
-- Key Vault: `creds-kv-suffix`
-  - Stores SQL admin credentials
-  - Access policies grant Adminer VM read permissions
-
-### Azure SQL Server (sqlserver.tf)
-- Deployed with:
-  - Private network access only
-  - TLS 1.2 enforced
-  - Admin credentials stored in Key Vault
-  - Preloaded with [Pagila-SQLServer sample database](https://github.com/mamonaco1973/pagila-sqlserver)
-
-### Azure SQL Managed Instance (sqlserver-mi.tf)
-- Fully managed Azure SQL MI
-- Private endpoint and DNS integration
-- Configured vCores, storage, collation, and TLS
-
-### Adminer VM (adminer.tf)
-- Ubuntu-based virtual machine
-- Hosts Adminer for browser-based SQL administration
-- Connected privately to both SQL Server and MI
-
-## Adminer Demo
-
-[Adminer](https://www.adminer.org/) is a lightweight web-based SQL database management tool.
-
-![adminer](adminer.png)
-
-Example queries against the Pagila sample database:
-
-Query 1:
-```sql
-SELECT TOP 100                       -- Limit the number of rows returned to 100
-    f.title AS film_title,           -- Select the 'title' column from the 'film' table and rename it to 'film_title'
-    a.first_name + ' ' + a.last_name AS actor_name 
-                                     -- Concatenate 'first_name' and 'last_name' from the 'actor' table with a space
-                                     -- Alias the concatenated result as 'actor_name' for readability
-FROM
-    film f                           -- Use the 'film' table as the primary dataset and alias it as 'f'
-JOIN
-    film_actor fa                    -- Join the linking table 'film_actor' that associates films with actors
-    ON f.film_id = fa.film_id        -- Match rows where the film's unique ID equals the film_actor's film ID
-JOIN
-    actor a                          -- Join the 'actor' table to retrieve actor details
-    ON fa.actor_id = a.actor_id      -- Match rows where the actor's unique ID equals the film_actor's actor ID
-ORDER BY 
-    f.title,                         -- Sort results by the film title in ascending alphabetical order
-    actor_name;                      -- Within each film, sort the actor names alphabetically
-```
-
-Query 2:
-
-```sql
-SELECT TOP 100                               -- Limit the output to the first 100 rows returned
-    f.title,                                 -- Select the 'title' column from the 'film' table
-    STRING_AGG(a.first_name + ' ' + a.last_name, ', ') AS actor_names
-                                             -- Use STRING_AGG to concatenate all actor names for each film
-                                             -- Combine 'first_name' and 'last_name' separated by a space
-                                             -- Separate multiple actor names in the aggregated string with a comma and a space
-                                             -- Alias the resulting concatenated list as 'actor_names'
-FROM
-    film f                                   -- Use the 'film' table as the main dataset and alias it as 'f'
-JOIN
-    film_actor fa                            -- Join the linking table 'film_actor' to connect films and actors
-    ON f.film_id = fa.film_id                -- Match rows where film IDs from both tables are equal
-JOIN
-    actor a                                  -- Join the 'actor' table to get actor details
-    ON fa.actor_id = a.actor_id              -- Match rows where actor IDs from both tables are equal
-GROUP BY
-    f.title                                  -- Group the results by each film title so all associated actors are aggregated together
-ORDER BY
-    f.title;                                 -- Sort the output alphabetically by film title
-```
-
+- **Lab only.** Adminer is open to the internet over plain HTTP, SSH accepts
+  password logins from anywhere, and the admin password is in the VM's custom
+  data. Restrict `vm-nsg` and add TLS for anything more.
+- The Managed Instance (General Purpose, 4 vCores, license included) is the
+  largest cost in this lab: run `./destroy.sh` when you finish.
